@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đổi link Shopee</title>
+<style>
+  :root {
+    --bg: #f6f5f3; --card: #ffffff; --text: #1d1d1f; --muted: #6b6b70; --line: #e4e2de;
+    --accent: #ee4d2d; --accent-text: #ffffff; --ok-bg: #edf7ef; --ok-line: #b9dfc1;
+    --warn-bg: #fff6e5; --warn-line: #f1d49a; --err: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416; --card: #1e1e21; --text: #f2f2f4; --muted: #a0a0a8; --line: #313136;
+      --accent: #ff6a47; --accent-text: #1a0d09; --ok-bg: #16281b; --ok-line: #2c5235;
+      --warn-bg: #2b2414; --warn-line: #5c4a22; --err: #ff7b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 0 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 260px; min-width: 0; padding: 12px 14px; font: inherit; color: var(--text);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; font-weight: 600; padding: 12px 18px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: var(--accent-text); }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); padding: 8px 12px; font-weight: 500; }
+  button:disabled { opacity: .6; cursor: progress; }
+  .result { border-radius: 10px; padding: 14px; margin-top: 14px; border: 1px solid var(--ok-line); background: var(--ok-bg); }
+  .result.demo { border-color: var(--warn-line); background: var(--warn-bg); }
+  .linkrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  .linkrow a { flex: 1 1 200px; min-width: 0; word-break: break-all; color: var(--accent); font-weight: 600; }
+  .note { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+  .error { color: var(--err); margin-top: 12px; }
+  .hidden { display: none; }
+  ul.vouchers { list-style: none; padding: 0; margin: 0; }
+  ul.vouchers li { border-top: 1px solid var(--line); padding: 12px 0; }
+  ul.vouchers li:first-child { border-top: 0; padding-top: 0; }
+  .code { font-family: ui-monospace, Consolas, monospace; font-weight: 700; font-size: 1.05rem; }
+  .vhead { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .desc { white-space: pre-line; color: var(--muted); font-size: .9rem; margin: 6px 0 0;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .desc.open { -webkit-line-clamp: unset; }
+  a { color: var(--accent); }
+  footer { color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Đổi link Shopee</h1>
+  <p class="lead">Dán link sản phẩm Shopee để nhận link mua hàng. Bên dưới có danh sách mã giảm giá, bạn chép mã rồi nhập ở trang thanh toán.</p>
+
+  <section class="card">
+    <form id="form">
+      <input id="link" type="text" inputmode="url" autocomplete="off" placeholder="https://shopee.vn/... hoặc https://s.shopee.vn/..." aria-label="Link sản phẩm Shopee" required>
+      <button id="submit" type="submit">Đổi link</button>
+    </form>
+    <div id="error" class="error hidden" role="alert"></div>
+    <div id="result" class="result hidden" aria-live="polite">
+      <strong id="title"></strong>
+      <div class="linkrow">
+        <a id="out" target="_blank" rel="noopener noreferrer"></a>
+        <button id="copy" class="ghost" type="button">Sao chép</button>
+      </div>
+      <p id="review" class="note hidden"></p>
+      <p id="disclosure" class="note"></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Mã giảm giá Shopee</h2>
+    <div id="vstatus" class="note">Đang tải danh sách mã…</div>
+    <ul id="vlist" class="vouchers"></ul>
+    <p class="note">Mã đọc từ trang công khai của Shopee, chưa xác nhận áp dụng được cho sản phẩm hay tài khoản của bạn. <a id="vmore" target="_blank" rel="noopener noreferrer" href="https://shopee.vn/m/ma-giam-gia">Xem kho mã Shopee</a></p>
+  </section>
+
+  <footer>
+    Link trả về là link tiếp thị liên kết: người làm trang này có thể nhận hoa hồng từ đơn hợp lệ, giá bạn trả không đổi.
+    Mã giảm giá dành riêng cho Facebook/Instagram không thể gắn sẵn vào link; hãy kiểm tra ưu đãi ở trang thanh toán.
+  </footer>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const form = $("form"), input = $("link"), submit = $("submit");
+  // Visitors arriving from a Facebook post carry fbclid or a Facebook referrer; tag them for Shopee reports.
+  let fromFacebook = new URLSearchParams(location.search).has("fbclid");
+  try { fromFacebook ||= /(^|\.)(facebook\.com|fb\.com|fb\.watch)$/i.test(new URL(document.referrer).hostname); } catch {}
+
+  async function copyText(text, btn) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const t = document.createElement("textarea");
+      t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); } catch {}
+      t.remove();
+    }
+    const old = btn.textContent;
+    btn.textContent = "Đã chép ✓";
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    $("error").classList.add("hidden");
+    $("result").classList.add("hidden");
+    submit.disabled = true;
+    submit.textContent = "Đang đổi…";
+    try {
+      const res = await fetch("/api/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link: input.value.trim(), source: fromFacebook ? "facebook" : "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Có lỗi, thử lại sau.");
+      $("result").classList.toggle("demo", data.demo);
+      $("title").textContent = data.demo ? "Chế độ demo: link chưa được chuyển đổi" : "Link mua hàng của bạn";
+      $("out").textContent = data.link;
+      $("out").href = data.link;
+      $("disclosure").textContent = data.demo
+        ? "Chủ trang chưa bật Shopee Affiliate Open API, nên đây là link sản phẩm đã bỏ tham số theo dõi."
+        : "Đây là link tiếp thị liên kết. Mở link rồi chọn mã giảm giá bên dưới ở bước thanh toán.";
+      const review = $("review");
+      review.replaceChildren();
+      if (data.review) {
+        review.append(data.review_is_post ? "📌 Review sản phẩm trên Facebook: " : "📌 Xem thêm review trên Facebook: ");
+        const a = document.createElement("a");
+        a.href = data.review; a.textContent = data.review; a.target = "_blank"; a.rel = "noopener noreferrer";
+        review.append(a);
+      }
+      review.classList.toggle("hidden", !data.review);
+      $("result").classList.remove("hidden");
+    } catch (err) {
+      $("error").textContent = err.message;
+      $("error").classList.remove("hidden");
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Đổi link";
+    }
+  });
+
+  $("copy").addEventListener("click", (e) => copyText($("out").textContent, e.currentTarget));
+
+  async function loadVouchers() {
+    const status = $("vstatus"), list = $("vlist");
+    try {
+      const res = await fetch("/api/vouchers");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (data.more) $("vmore").href = data.more;
+      if (!data.vouchers.length) {
+        status.textContent = "Hiện chưa đọc được mã còn hạn.";
+        return;
+      }
+      status.classList.add("hidden");
+      for (const v of data.vouchers) {
+        const li = document.createElement("li");
+        const head = document.createElement("div");
+        head.className = "vhead";
+        const code = document.createElement("span");
+        code.className = "code"; code.textContent = v.code;
+        const btn = document.createElement("button");
+        btn.className = "ghost"; btn.type = "button"; btn.textContent = "Chép mã";
+        btn.addEventListener("click", () => copyText(v.code, btn));
+        head.append(code, btn);
+        const desc = document.createElement("p");
+        desc.className = "desc"; desc.textContent = v.description;
+        desc.title = "Nhấn để xem đủ điều kiện";
+        desc.addEventListener("click", () => desc.classList.toggle("open"));
+        const more = document.createElement("a");
+        more.href = v.url; more.textContent = "Điều kiện trên Shopee"; more.target = "_blank"; more.rel = "noopener noreferrer";
+        more.className = "note";
+        li.append(head, desc, more);
+        list.append(li);
+      }
+    } catch {
+      status.textContent = "Không tải được danh sách mã, thử tải lại trang sau.";
+    }
+  }
+  loadVouchers();
+})();
+</script>
+</body>
+</html>
